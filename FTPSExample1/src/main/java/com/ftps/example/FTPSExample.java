@@ -1,11 +1,25 @@
 
 package com.ftps.example;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.security.cert.CertificateException;
+
 import org.apache.commons.net.PrintCommandListener;
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPConnectionClosedException;
@@ -14,12 +28,49 @@ import org.apache.commons.net.ftp.FTPSClient;
 
 public final class FTPSExample {
 
-	public static final void main(String[] args) throws NoSuchAlgorithmException, IOException {
+	private static String KEYSTORE_FILE_NAME = "/home/vikas/work/cryptography/test/clientkeystore.jks";
+	private static String KEYSTORE_PASS = "password";
+	
+    private static SSLContext getSSLContext() throws KeyManagementException, KeyStoreException, NoSuchAlgorithmException, CertificateException, FileNotFoundException, UnrecoverableKeyException, IOException, java.security.cert.CertificateException {
+      TrustManager[] tm = getTrustManagers();
+      System.out.println("Init SSL Context");
+      SSLContext sslContext = SSLContext.getInstance("SSLv3");
+      sslContext.init(null, tm, null);
+       return sslContext;
+    }
+    
+    
+	private static KeyManager[] getKeyManagers() throws KeyStoreException, NoSuchAlgorithmException, CertificateException, FileNotFoundException, IOException, UnrecoverableKeyException, java.security.cert.CertificateException {
+         KeyStore ks = KeyStore.getInstance("JKS");
+         ks.load(new FileInputStream(KEYSTORE_FILE_NAME), KEYSTORE_PASS.toCharArray());
+         KeyManagerFactory tmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+         System.out.println("KeyManagerFactory.getDefaultAlgorithm() : "+KeyManagerFactory.getDefaultAlgorithm());
+         tmf.init(ks, KEYSTORE_PASS.toCharArray());
+         return tmf.getKeyManagers();
+    }
+	 
+	private static TrustManager[] getTrustManagers() throws KeyStoreException, NoSuchAlgorithmException, CertificateException, FileNotFoundException, IOException, UnrecoverableKeyException, java.security.cert.CertificateException {
+        KeyStore ks = KeyStore.getInstance("JKS");
+	    ks.load(new FileInputStream(KEYSTORE_FILE_NAME), KEYSTORE_PASS.toCharArray());
+		TrustManagerFactory tmf = TrustManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+		tmf.init(ks);
+        return tmf.getTrustManagers();
+    }
+	 
+	public static final void main(String[] args) throws NoSuchAlgorithmException, IOException, KeyManagementException, UnrecoverableKeyException, KeyStoreException, java.security.cert.CertificateException, CertificateException {
+	
+		//getSSLContext();
+		//getTrustManagers();
+		 KeyManager keyManager = getKeyManagers()[0];
+         TrustManager trustManager = getTrustManagers()[0];
+         System.out.println("keyManager : "+keyManager +" trustManager : "+trustManager);
+		System.out.println("Completed SSL Handshake");
+//		/System.exit(0);
 		
 		boolean storeFile = false, binaryTransfer = false, error = false;
 		String server, username, password, remote, local;
 		String protocol = "SSL"; 
-		FTPSClient ftps;
+		FTPSClient ftps = null;
 		server = "localhost";
 		username = "ftpuser";
 		password = "ftpuser";
@@ -28,12 +79,18 @@ public final class FTPSExample {
 		local = "a.txt ";
 		binaryTransfer = true;
 		ftps = new FTPSClient(protocol);
+		
 		storeFile = true;
-		ftps.addProtocolCommandListener(new PrintCommandListener(new PrintWriter(System.out)));		
+		ftps.addProtocolCommandListener(new PrintCommandListener(new PrintWriter(System.out)));
+		
+		ftps.setKeyManager(keyManager);
+		ftps.setTrustManager(trustManager);
+		System.out.println("Done Setting keyManager and trustManager");
 		try {
 			int reply;
 			ftps.connect(server);
-			ftps.execPROT("P");			
+			ftps.execPROT("P");
+			
 			System.out.println("Connected to " + server + ".");
 			reply = ftps.getReplyCode();
 			if (!FTPReply.isPositiveCompletion(reply)) {
@@ -55,6 +112,7 @@ public final class FTPSExample {
 		}
 
 
+		//ftps.setTrustManager();
 		__login: try {
 			ftps.setBufferSize(1024);
 			if (!ftps.login(username, password)) {
