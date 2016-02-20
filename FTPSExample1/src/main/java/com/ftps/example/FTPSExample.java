@@ -1,6 +1,7 @@
 
 package com.ftps.example;
 
+import java.io.DataInputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -42,7 +43,7 @@ public final class FTPSExample {
 	 String REMOTE_PATH = "/remote/a.txt"; // Make Sure you give remote
 													// path w.r.to remote ftp
 													// user home dir
-	 String LOCAL_PATH = "a.txt ";
+	 String LOCAL_PATH = "a.txt";
 	 String PROTOCOL = "SSL";
 	 FTPSClient ftpsClient = null;
 
@@ -77,7 +78,6 @@ public final class FTPSExample {
 
 	}
 
-	
 	public  final void doFtp()
 			throws NoSuchAlgorithmException, IOException, KeyManagementException, UnrecoverableKeyException,
 			KeyStoreException, java.security.cert.CertificateException, CertificateException {
@@ -132,7 +132,8 @@ public final class FTPSExample {
 			if (storeFile) {
 
 				InputStream input;
-				input = FTPSExample.class.getClassLoader().getResourceAsStream("a.txt");
+				FileInputStream fin;
+				input = new FileInputStream (LOCAL_PATH);
 				ftpsClient.storeFile(REMOTE_PATH, input);
 				System.out
 						.println("Stored local File : " + LOCAL_PATH + "to Server :" + SERVER + " at : " + REMOTE_PATH);
@@ -167,5 +168,6 @@ public final class FTPSExample {
 	public static void main(String[] args) throws KeyManagementException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, java.security.cert.CertificateException, IOException, CertificateException {
 		FTPSExample ftpsExample = new FTPSExample();
 		ftpsExample.doFtp();
+		//ftpsExample.testRead();
 	}
 }
